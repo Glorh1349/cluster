@@ -8,4 +8,15 @@ public final class Coordinate {
         this.latitude = latitude; 
         this.longitude = longitude;
     }
+     
+    public String toString() {
+    		return "["+latitude+" , "+longitude+"]"; 
+    }
+    
+    public double getLatitude () {
+    		return this.latitude;
+    }
+    public double getLongitude () {
+		return this.longitude;
+    }
 }
