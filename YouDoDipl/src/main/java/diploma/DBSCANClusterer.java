@@ -12,10 +12,14 @@ public class DBSCANClusterer {
 	private int minimumNumberOfClusterMembers = 2;
 	
 	private ArrayList<Coordinate> inputValues = null;
+	private ArrayList<Coordinate> coordinatesFilteredToBound = null;
 	
 	private HashSet<Coordinate> visitedPoints = new HashSet<Coordinate>();
 	 
-	public static final double R = 6400; // Earth Radius In kilometers
+	public static final double R = 6371; // Earth Radius In kilometers
+	
+	// Bounds of co-ordinates to include
+	private double minLat, minLng, maxLat, maxLng;
 	
 	// Haversine Distance Formula
 	public double calculateDistance(Coordinate val1, Coordinate val2) {
@@ -35,15 +39,19 @@ public class DBSCANClusterer {
         return R * c;
     }
 	
+	public DBSCANClusterer(final Collection<Coordinate> inputValues) {
+		setInputValues(inputValues);
+	}
+	
 	public DBSCANClusterer(final Collection<Coordinate> inputValues, int minNumElem, double maxDistance ) {
 		setInputValues(inputValues);
 		setMinimalNumberOfMembersForCluster(minNumElem);
 		setMaxDistanceOfClusterMembers(maxDistance);
 	}
 	
-	
 	public void setInputValues(final Collection<Coordinate> collection) {
 		this.inputValues = new ArrayList<Coordinate>(collection);
+		this.coordinatesFilteredToBound = new ArrayList<Coordinate>();
 	}
 	
 	public void setMinimalNumberOfMembersForCluster(final int num) {
@@ -54,11 +62,27 @@ public class DBSCANClusterer {
 		this.epsilon = maxDistance;
 	}
 	
+	public void setBounds(final double minLat, final double minLng, final double maxLat, final double maxLng) {
+		this.minLat = minLat;
+		this.minLng = minLng;
+		this.maxLat = maxLat;
+		this.maxLng = maxLng;
+	}
+	
 	private ArrayList<Coordinate> getNeighbours(final Coordinate inputValue) {
 		ArrayList<Coordinate> neighbours = new ArrayList<Coordinate>();
 		
-		for(int i=0; i<inputValues.size(); i++) {
-			Coordinate candidate = inputValues.get(i);
+		for(int i=0; i<coordinatesFilteredToBound.size(); i++) {
+			Coordinate candidate = coordinatesFilteredToBound.get(i);
+			
+//			if( 
+//					(candidate.getLatitude() < this.minLat) 
+//					|| (candidate.getLatitude() > this.maxLat) 
+//					|| (candidate.getLongitude() < this.minLng) 
+//					|| (candidate.getLongitude() > this.maxLng) 
+//			) {
+//				continue;
+//			}
 			
 			if(calculateDistance(inputValue, candidate) <= epsilon ) {
 				neighbours.add(candidate);
@@ -88,8 +112,27 @@ public class DBSCANClusterer {
 		ArrayList<Coordinate> neighbours;
 		int index=0;
 		
-		while ( inputValues.size()  > index ) {
-			Coordinate p = inputValues.get(index);
+//		coordinatesFilteredToBound.clear();
+		
+//		String a = inputValues.toString();
+//		System.out.println(a);
+		
+		for(int i=0; i<this.inputValues.size(); i++) {
+			Coordinate c = this.inputValues.get(i);
+			if( 
+					(c.getLatitude() < this.minLat) 
+					|| (c.getLatitude() > this.maxLat) 
+					|| (c.getLongitude() < this.minLng) 
+					|| (c.getLongitude() > this.maxLng) 
+			) {
+				continue;
+			}
+			
+			coordinatesFilteredToBound.add(c);
+		}
+		
+		while ( coordinatesFilteredToBound.size()  > index ) {
+			Coordinate p = coordinatesFilteredToBound.get(index);
 			
 			if (!visitedPoints.contains(p)) {
 				visitedPoints.add(p);

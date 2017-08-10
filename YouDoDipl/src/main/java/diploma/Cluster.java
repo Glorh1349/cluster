@@ -58,5 +58,9 @@ public class Cluster {
 		return js_code;
 	}
 	
+	public String getLocationAsArray() {
+		return "[" + this.center.getLatitude() + "," + this.center.getLongitude() + ", '" + this.numOfPoints + "' ]";	
+	}
+	
 
 }
