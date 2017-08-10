@@ -81,7 +81,7 @@ public class JsonMain {
 	        //Restrict Geolocations to only Russia
 	        if ( !( latitude > 70.446677 || latitude < 49.177129 || longitude > 161.894782 || longitude < 32.97373 ) ){
 	        	// Check if the object contains the exactly coordinates for crash with pedestrian
-		        if (name.contains("Наезд на пешехода")) {
+		        if (name.contains("РќР°РµР·Рґ РЅР° РїРµС€РµС…РѕРґР°")) {
 		        	// Just delegate our coordinates in handler
 			        listener.onCoordinates(latitude, longitude);
 		        }
@@ -99,7 +99,7 @@ public class JsonMain {
 	        throws IOException {
 	    try ( final JsonReader jsonReader = new JsonReader(new BufferedReader(
 	    		new InputStreamReader(
-	    				new FileInputStream("json/rus-crash.json")))) ) {
+	    				new FileInputStream("json/2015-crash.json")))) ) {
 	        parseCrashCoordinates(jsonReader, listener);
 	    }
 	}
@@ -126,7 +126,7 @@ public class JsonMain {
 	    System.out.println(coordinates.isEmpty());
 	    
 	    // Initialize our clustering class with locations, minimum points in cluster and max Distance
-	    DBSCANClusterer clusterer = new DBSCANClusterer(coordinates, 3, 2); // (20, 100)
+	    DBSCANClusterer clusterer = new DBSCANClusterer(coordinates, 20, 100);
 	    
 	    //Perform the clustering and save the returned clusters as a list
 	    ArrayList<ArrayList<Coordinate>> clusters_raw= clusterer.performClustering();
