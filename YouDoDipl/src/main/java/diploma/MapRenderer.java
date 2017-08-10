@@ -30,7 +30,7 @@ public class MapRenderer {
 	    JFrame frame = new JFrame("JxBrowser - Hello World");
 	    frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.add(view, BorderLayout.CENTER);
-        frame.setSize(1000, 800);
+        frame.setSize(800, 600);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
         

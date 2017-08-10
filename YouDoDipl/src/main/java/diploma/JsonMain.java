@@ -1,16 +1,28 @@
 package diploma;
 
+import java.awt.BorderLayout;
 import java.io.BufferedReader;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
+
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.MalformedJsonException;
+import com.teamdev.jxbrowser.chromium.Browser;
+import com.teamdev.jxbrowser.chromium.JSValue;
+import com.teamdev.jxbrowser.chromium.events.ConsoleEvent;
+import com.teamdev.jxbrowser.chromium.events.ConsoleListener;
+import com.teamdev.jxbrowser.chromium.events.ScriptContextAdapter;
+import com.teamdev.jxbrowser.chromium.events.ScriptContextEvent;
+import com.teamdev.jxbrowser.chromium.swing.BrowserView;
 
 import diploma.DBSCANClusterer;
 
@@ -40,6 +52,7 @@ public class JsonMain {
 	        // Not 'items'? No idea how to work with it, then better throw an exception
 	        throw new MalformedJsonException(ITEMS_NAME + " expected but was " + itemsName);
 	    }
+	    
 	    
 	    // Looking for [
 	    jsonReader.beginArray();
@@ -79,13 +92,13 @@ public class JsonMain {
 	            }
 	           
 	        //Restrict Geolocations to only Russia
-	        if ( !( latitude > 70.446677 || latitude < 49.177129 || longitude > 161.894782 || longitude < 32.97373 ) ){
+//	        if ( !( latitude > 70.446677 || latitude < 49.177129 || longitude > 161.894782 || longitude < 32.97373 ) ){
 	        	// Check if the object contains the exactly coordinates for crash with pedestrian
 		        if (name.contains("Наезд на пешехода")) {
 		        	// Just delegate our coordinates in handler
 			        listener.onCoordinates(latitude, longitude);
 		        }
-	        }
+//	        }
 	        
 	        // And say, that we are done with current object 
 	        jsonReader.endObject();
@@ -120,77 +133,64 @@ public class JsonMain {
 	}
 	
 	public static void main(String[] args) throws IOException, URISyntaxException {
+		
+		/* READ JSON AND POPULATE OUR coordinates List */
 		testOutput();
-	    testCollecting();  
+	    testCollecting();
 	    
+	    /* Initialize our DBSCAN algo class with this co-ordinate list as source of points */ 
+	    DBSCANClusterer clusterer1 = new DBSCANClusterer(coordinates);
+		
+	    
+	    /* Read out HTML Code From the file */ 
+		InputStream is = new FileInputStream("html/index.tpl");
+		BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+		String line = buf.readLine();
+		StringBuilder sb = new StringBuilder();
+		while(line != null){
+		   sb.append(line).append("\n");
+		   line = buf.readLine();
+		}       
+		String fileAsString = sb.toString();
+		buf.close();
+		
+		/* Launch A Browser Instance */
+		Browser browser = new Browser();
+	    BrowserView view = new BrowserView(browser);
+	    
+	    JFrame frame = new JFrame("Clustering Of Accident Data");
+	    frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.add(view, BorderLayout.CENTER);
+        frame.setSize(800, 600);
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+        
+        browser.addConsoleListener(new ConsoleListener() {
+            public void onMessage(ConsoleEvent event) {
+                System.out.println("Level: " + event.getLevel());
+                System.out.println("Message: " + event.getMessage());
+            }
+        });
+        
+        /* Create a bridge between the browser and our java code */
+        browser.addScriptContextListener(new ScriptContextAdapter() {
+            @Override
+            public void onScriptContextCreated(ScriptContextEvent event) {
+                Browser browser = event.getBrowser();
+                JSValue window = browser.executeJavaScriptAndReturnValue("window");
+                
+                // Attach a BrowserJavaObject Class object to the browser
+                // This Class contains functions to implement the "Analyze Map State - Form Clusters - Pass Clusters To Javascript For Plotting" routine
+                // We pass our previously created DBSCAN object that has only source data set
+                // The other parameters which are required to perform the clustering are set based on the Map state
+                window.asObject().setProperty("java", new BrowserJavaObject( clusterer1 ));
+            }
+        });
+        
+        browser.loadHTML( fileAsString );
+		
 	    System.out.println(coordinates.isEmpty());
 	    
-	    // Initialize our clustering class with locations, minimum points in cluster and max Distance
-	    DBSCANClusterer clusterer = new DBSCANClusterer(coordinates, 20, 100);
-	    
-	    //Perform the clustering and save the returned clusters as a list
-	    ArrayList<ArrayList<Coordinate>> clusters_raw= clusterer.performClustering();
-	    
-	    // Change the cluster list into array of object of our cluster class
-	    // The clusters class is responsible for finding the center of the cluster and also the number of points inside the cluster
-	    // It also exposes a method which returns javascript code for plotting the cluster as markers with numbers
-	    ArrayList<Cluster> clusters = new ArrayList<>();
-	    for(int i=0; i<clusters_raw.size(); i++) {
-	    		Cluster c = new Cluster(clusters_raw.get(i));
-	    		clusters.add(c);
-	    }
-	    
-	    
-	    //Start building the HTML for display in browser
-	    String html = "<!DOCTYPE html>\n" + 
-        		"<html>\n" + 
-        		"  <head>\n" + 
-        		"    <title>Simple Map</title>\n" + 
-        		"    <meta name=\"viewport\" content=\"initial-scale=1.0\">\n" + 
-        		"    <meta charset=\"utf-8\">\n" + 
-        		"    <style>\n" + 
-        		"      /* Always set the map height explicitly to define the size of the div\n" + 
-        		"       * element that contains the map. */\n" + 
-        		"      #map {\n" + 
-        		"        height: 100%;\n" + 
-        		"      }\n" + 
-        		"      /* Optional: Makes the sample page fill the window. */\n" + 
-        		"      html, body {\n" + 
-        		"        height: 100%;\n" + 
-        		"        margin: 0;\n" + 
-        		"        padding: 0;\n" + 
-        		"      }\n" + 
-        		"    </style>\n" + 
-        		"	<script src='https://cdn.rawgit.com/googlemaps/js-marker-clusterer/gh-pages/src/markerclusterer.js'></script>"+
-        		"  </head>\n" + 
-        		"  <body>\n" + 
-        		"    <div id=\"map\"></div>\n" + 
-        		"    <script>\n" + 
-        		"      var map;\n" + 
-        		"      function initMap() {\n" + 
-        		"        map = new google.maps.Map(document.getElementById('map'), {\n" + 
-        		"          zoom: 3,\n" +
-        		"			center: new google.maps.LatLng(70.503758, 88.513333)" +
-        		"        });\n" +
-        		"		var markers=[];var bounds = new google.maps.LatLngBounds(); ";
-	    
-	    // Iterate through the clusters and generate javascript code for adding markers with numbers
-        	for(int i=0;i<clusters.size();i++) {
-        		html += clusters.get(i).getMarkerString() + "\n" ;
-        	}
-        
-        html += "      };"+ 
-        		"    </script>\n" + 
-        		"    <script src=\"https://maps.googleapis.com/maps/api/js?callback=initMap\"\n" + 
-        		"    async defer></script>\n" + 
-        		"  </body>\n" + 
-        		"</html>";
-	    
-        
-        // Instantiate our class for opening a browser and rendering the map
-        MapRenderer mr = new MapRenderer();
-	    mr.setHtml(html);
-	    mr.showMap();
 	}
 	
 }
