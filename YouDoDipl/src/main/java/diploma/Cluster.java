@@ -2,9 +2,10 @@ package diploma;
 
 import java.util.ArrayList;
 
+import de.fhpotsdam.unfolding.marker.SimplePointMarker;
 import diploma.Coordinate;
 
-public class Cluster {
+public class Cluster extends SimplePointMarker {
 	private int numOfPoints;
 	private Coordinate center;
 	

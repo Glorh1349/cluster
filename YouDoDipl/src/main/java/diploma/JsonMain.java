@@ -50,7 +50,7 @@ public class JsonMain extends PApplet {
 	    // Change the cluster list into array of object of our cluster class
 	    // The clusters class is responsible for finding the center of the cluster and also the number of points inside the cluster
 	    // It also exposes a method which returns javascript code for plotting the cluster as markers with numbers
-	    ArrayList<Cluster> clusters = new ArrayList<>();
+	    List<Marker> clusters = new ArrayList<>();
 	    for(int i=0; i<clusters_raw.size(); i++) {
 	    		Cluster c = new Cluster(clusters_raw.get(i));
 	    		clusters.add(c);
