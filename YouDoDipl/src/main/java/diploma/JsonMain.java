@@ -1,13 +1,22 @@
 package diploma;
 
 import java.io.BufferedReader;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+
+import de.fhpotsdam.unfolding.UnfoldingMap;
+import de.fhpotsdam.unfolding.data.PointFeature;
+import de.fhpotsdam.unfolding.marker.Marker;
+import de.fhpotsdam.unfolding.marker.SimplePointMarker;
+import de.fhpotsdam.unfolding.providers.Google;
+import de.fhpotsdam.unfolding.providers.MBTilesMapProvider;
+import de.fhpotsdam.unfolding.providers.OpenStreetMap;
+import de.fhpotsdam.unfolding.utils.MapUtils;
+import processing.core.PApplet;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.MalformedJsonException;
@@ -16,7 +25,43 @@ import diploma.DBSCANClusterer;
 
 import diploma.Cluster;
 
-public class JsonMain {
+public class JsonMain extends PApplet {
+	
+	private static final long serialVersionUID = 1L;
+	private UnfoldingMap map;
+	
+	public void setup() {
+		size(950, 600, P2D );
+		map = new UnfoldingMap(this, 200, 50, 700, 500, new OpenStreetMap.OpenStreetMapProvider());
+		map.zoomToLevel(2);
+		MapUtils.createDefaultEventDispatcher(this, map);
+		try {
+			testCollecting();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	    // Initialize our clustering class with locations, minimum points in cluster and max Distance
+	    DBSCANClusterer clusterer = new DBSCANClusterer(coordinates, 3, 2); // (20, 100)
+	    
+	    //Perform the clustering and save the returned clusters as a list
+	    ArrayList<ArrayList<Coordinate>> clusters_raw= clusterer.performClustering();
+	    
+	    // Change the cluster list into array of object of our cluster class
+	    // The clusters class is responsible for finding the center of the cluster and also the number of points inside the cluster
+	    // It also exposes a method which returns javascript code for plotting the cluster as markers with numbers
+	    ArrayList<Cluster> clusters = new ArrayList<>();
+	    for(int i=0; i<clusters_raw.size(); i++) {
+	    		Cluster c = new Cluster(clusters_raw.get(i));
+	    		clusters.add(c);
+	    }
+	    
+		map.addMarkers(clusters);
+	}
+	public void draw() {
+		background(10);
+		map.draw();
+	}
 
 	static List<Coordinate> coordinates = new ArrayList<>();
 	
@@ -99,7 +144,7 @@ public class JsonMain {
 	        throws IOException {
 	    try ( final JsonReader jsonReader = new JsonReader(new BufferedReader(
 	    		new InputStreamReader(
-	    				new FileInputStream("json/rus-crash.json")))) ) {
+	    				new FileInputStream("C:\\Users\\Evgeny\\git\\cluster\\YouDoDipl\\json\\2015-crash.json")))) ) {
 	        parseCrashCoordinates(jsonReader, listener);
 	    }
 	}
@@ -119,12 +164,15 @@ public class JsonMain {
 	    System.out.println(coordinates.size());   
 	}
 	
-	public static void main(String[] args) throws IOException, URISyntaxException {
-		testOutput();
-	    testCollecting();  
+	public static void main(String[] args)  {
+	//	testOutput();
+	 //   testCollecting();  
 	    
 	    System.out.println(coordinates.isEmpty());
+	  
 	    
+	    
+	    /*
 	    // Initialize our clustering class with locations, minimum points in cluster and max Distance
 	    DBSCANClusterer clusterer = new DBSCANClusterer(coordinates, 3, 2); // (20, 100)
 	    
@@ -141,56 +189,9 @@ public class JsonMain {
 	    }
 	    
 	    
-	    //Start building the HTML for display in browser
-	    String html = "<!DOCTYPE html>\n" + 
-        		"<html>\n" + 
-        		"  <head>\n" + 
-        		"    <title>Simple Map</title>\n" + 
-        		"    <meta name=\"viewport\" content=\"initial-scale=1.0\">\n" + 
-        		"    <meta charset=\"utf-8\">\n" + 
-        		"    <style>\n" + 
-        		"      /* Always set the map height explicitly to define the size of the div\n" + 
-        		"       * element that contains the map. */\n" + 
-        		"      #map {\n" + 
-        		"        height: 100%;\n" + 
-        		"      }\n" + 
-        		"      /* Optional: Makes the sample page fill the window. */\n" + 
-        		"      html, body {\n" + 
-        		"        height: 100%;\n" + 
-        		"        margin: 0;\n" + 
-        		"        padding: 0;\n" + 
-        		"      }\n" + 
-        		"    </style>\n" + 
-        		"	<script src='https://cdn.rawgit.com/googlemaps/js-marker-clusterer/gh-pages/src/markerclusterer.js'></script>"+
-        		"  </head>\n" + 
-        		"  <body>\n" + 
-        		"    <div id=\"map\"></div>\n" + 
-        		"    <script>\n" + 
-        		"      var map;\n" + 
-        		"      function initMap() {\n" + 
-        		"        map = new google.maps.Map(document.getElementById('map'), {\n" + 
-        		"          zoom: 3,\n" +
-        		"			center: new google.maps.LatLng(70.503758, 88.513333)" +
-        		"        });\n" +
-        		"		var markers=[];var bounds = new google.maps.LatLngBounds(); ";
-	    
-	    // Iterate through the clusters and generate javascript code for adding markers with numbers
-        	for(int i=0;i<clusters.size();i++) {
-        		html += clusters.get(i).getMarkerString() + "\n" ;
-        	}
-        
-        html += "      };"+ 
-        		"    </script>\n" + 
-        		"    <script src=\"https://maps.googleapis.com/maps/api/js?callback=initMap\"\n" + 
-        		"    async defer></script>\n" + 
-        		"  </body>\n" + 
-        		"</html>";
-	    
-        
-        // Instantiate our class for opening a browser and rendering the map
-        MapRenderer mr = new MapRenderer();
-	    mr.setHtml(html);
-	    mr.showMap();
+	    */
+	    PApplet.main(new String[] {"--present", "EarthQuakeMap"});
+
 	}
 	
 }
